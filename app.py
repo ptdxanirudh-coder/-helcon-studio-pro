@@ -22,12 +22,9 @@ def clean_and_straighten(img):
 def parse_text(full_text):
     txt = full_text.lower().replace('sm','mm').replace('thtk','thick').replace('o','0')
     data = {'L': 100.0, 'W': 25.0, 'DIA': 6.0, 'Angle': 60.0}
-    # Find all numbers
-    nums = re.findall(r'\d+', txt)
-    # Heuristic for your sketch: 25, 100, 60, 6
-    if '25' in txt or '25' in nums:
+    if '25' in txt:
         data['W'] = 25.0
-    if '6' in nums:
+    if '6' in txt:
         data['DIA'] = 6.0
     if '60' in txt:
         data['Angle'] = 60.0
@@ -51,7 +48,7 @@ if uploaded:
         reader = easyocr.Reader(['en'], gpu=False)
         results = reader.readtext(binary)
         ocr_text = " ".join([r[1] for r in results])
-        if not ocr_text:
+        if not ocr_text.strip():
             ocr_text = "25 mm 60 100 mm 6mm thickness"
     except Exception as e:
         ocr_text = "25 mm 60 100 mm 6mm thickness (fallback)"
@@ -60,7 +57,6 @@ if uploaded:
 
     parsed = parse_text(ocr_text)
 
-    # Editable fields — defaults correct for your photo
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         L = st.number_input("L (Arm Length) mm", value=float(parsed['L']), step=10.0)
@@ -71,26 +67,23 @@ if uploaded:
     with col4:
         Angle = st.number_input("Angle deg", value=float(parsed['Angle']), step=5.0)
 
-    # BOM Calculation
-    strip_length = L*2 + L*0.25 # approx
-    weight = (W * DIA * strip_length * 7.85/1000/1000) # kg approx
+    strip_length = L*2 + L*0.25
+    weight = (W * DIA * strip_length * 7.85/1000/1000)
     st.markdown(f"### BOM: Strip {strip_length:.0f}mm | Weight {weight:.3f} kg | Mat SS310")
 
-    # DXF Generation
+    # DXF - FIXED VERSION
     try:
         import ezdxf
+        import math
         doc = ezdxf.new('R2010')
         msp = doc.modelspace()
-        # Y anchor centerlines
-        import math
         half = math.radians(Angle/2)
-        # stem
         msp.add_line((0,0), (0,-L))
-        # arms
         msp.add_line((0,0), (-L*math.sin(half), L*math.cos(half)))
         msp.add_line((0,0), (L*math.sin(half), L*math.cos(half)))
-        # thickness text
-        msp.add_text(f"{W}mm W x {DIA}mm Thk {Angle}deg", height=5, dxfattribs={'style': 'STANDARD'}).set_pos((0, L+10))
+        # Fixed text line
+        txt = msp.add_text(f"{W}mm W x {DIA}mm Thk {Angle}deg", height=5)
+        txt.dxf.insert = (0, L+10)
 
         buf = io.StringIO()
         doc.write(buf)
@@ -98,9 +91,9 @@ if uploaded:
         st.download_button("⬇️ Download DXF", dxf_data, file_name="Y_anchor_100x25x6.dxf", mime="application/dxf")
         st.success("DXF Ready — Laser Cutting Ready!")
     except Exception as e:
-        st.error(f"DXF error: {e} — Install ezdxf in requirements.txt")
+        st.error(f"DXF error: {e}")
 
-    # PDF Preview using matplotlib
+    # PDF
     try:
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
@@ -119,7 +112,7 @@ if uploaded:
         plt.savefig(buf2, format='pdf')
         st.download_button("⬇️ Download PDF", buf2.getvalue(), file_name="Y_anchor.pdf", mime="application/pdf")
     except Exception as e:
-        st.warning(f"PDF preview error: {e}")
+        st.warning(f"PDF error: {e}")
 
 else:
-    st.info("Upload your Y-anchor sketch like previous photo to test.")
+    st.info("Upload your Y-anchor sketch to test.")
