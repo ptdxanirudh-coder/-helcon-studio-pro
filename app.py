@@ -1,99 +1,122 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import numpy as np, io, math
 
 st.set_page_config(page_title="HELCON BLUEPRINT", layout="wide")
 
-# BLUEPRINT CSS - Makes whole Streamlit app blue
+# --- BLUEPRINT THEME CSS ---
 st.markdown("""
 <style>
-.stApp { background-color: #0F6FFF !important; background-image: 
-linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
-background-size: 20px 20px; }
-h1,h2,h3,p,label,div { color: white !important; }
-.stSlider > div { color: white; }
-[data-testid="stFileUploader"] { border: 2px dashed white; background: rgba(255,255,255,0.1); }
+.stApp {
+  background-color: #0B65E8 !important;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+h1,h2,h3,span,p,label { color: white !important; }
+.stSlider label { color: white !important; }
+hr { border-color: white !important; }
+[data-testid="stFileUploader"]{
+  background: rgba(255,255,255,0.12) !important;
+  border: 1.5px dashed white !important;
+}
+[data-testid="stFileUploader"] * { color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("## Y-TYPE REFRACTORY ANCHOR &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HELCON.COM")
-st.markdown("---")
+# --- HEADER LIKE X BOTTLE HOLDER ---
+st.markdown("""
+<div style="border:1.5px solid white; border-bottom:none; padding:8px 12px; display:flex; justify-content:space-between;">
+  <span style="font-weight:800; letter-spacing:1px;">Y-TYPE REFRACTORY ANCHOR</span>
+  <span>HELCON.COM</span>
+</div>
+<div style="border:1.5px solid white; height:1px;"></div>
+""", unsafe_allow_html=True)
 
-# PARAMS - Handles infinite
-c1, c2, c3 = st.columns(3)
-with c1: a = st.slider("a - Overall Height", 40, 300, 100)
-with c2: dia = st.slider("Ø - Wire Dia", 6, 16, 10)
-with c3: angle = st.slider("Angle", 30, 120, 75)
+# Sliders still white
+a = st.slider("OVERALL HEIGHT (a)", 60, 300, 100)
+dia = st.slider("WIRE Ø", 6, 16, 10)
+ang = st.slider("Y-ANGLE", 45, 120, 75)
 
-uploaded = st.file_uploader("Drop any sketch", type=["jpg","png","jpeg"])
-
-def draw_blueprint(a, dia, angle):
-    fig = plt.figure(figsize=(16,10), dpi=250)
-    fig.patch.set_facecolor('#0F6FFF')
+def blueprint_fig(a, dia, ang):
+    fig = plt.figure(figsize=(12,7.5), dpi=300)
+    fig.patch.set_facecolor('#0B65E8')
     ax = fig.add_axes([0,0,1,1])
-    ax.set_xlim(0, 1000); ax.set_ylim(0, 700)
+    ax.set_xlim(0,100); ax.set_ylim(0,65)
     ax.axis('off')
-    ax.set_facecolor('#0F6FFF')
+    ax.set_facecolor('#0B65E8')
 
-    # Grid
-    for x in range(0,1000,20):
-        ax.plot([x,x],[0,700], color='white', lw=0.2, alpha=0.15)
-    for y in range(0,700,20):
-        ax.plot([0,1000],[y,y], color='white', lw=0.2, alpha=0.15)
+    # fine grid
+    for x in np.arange(0,100,2):
+        ax.plot([x,x],[0,65], color='white', lw=0.15, alpha=0.12)
+    for y in np.arange(0,65,2):
+        ax.plot([0,100],[y,y], color='white', lw=0.15, alpha=0.12)
 
-    # Outer border + Rulers
-    ax.plot([10,990],[680,680], c='white', lw=1.5)
-    ax.plot([10,990],[20,20], c='white', lw=1.5)
-    ax.plot([20,20],[20,680], c='white', lw=1.5)
-    ax.plot([980,980],[20,680], c='white', lw=1.5)
+    # outer border
+    ax.plot([2,98],[2,2], c='white', lw=1); ax.plot([2,98],[62,62], c='white', lw=1)
+    ax.plot([2,2],[2,62], c='white', lw=1); ax.plot([98,98],[2,62], c='white', lw=1)
 
-    # Top title like MO2E
-    ax.text(30, 690, "Y-TYPE REFRACTORY ANCHOR", color='white', fontsize=14, weight='bold', va='center')
-    ax.text(900, 690, "HELCON.COM", color='white', fontsize=10, va='center')
-    ax.text(100, 660, "Plan", color='white', fontsize=8, bbox=dict(edgecolor='white', facecolor='none'))
+    # rulers - bottom and left like reference
+    for i in range(0,101,5):
+        ax.plot([i,i],[2,3.5 if i%10==0 else 2.8], c='white', lw=0.6)
+        if i%10==0: ax.text(i,0.5,str(i), color='white', fontsize=4, ha='center')
+    for i in range(0,66,5):
+        ax.plot([2,3.5 if i%10==0 else 2.8],[i,i], c='white', lw=0.6)
+        if i%10==0: ax.text(0.5,i,str(i), color='white', fontsize=4, va='center')
 
-    # --- FIG 3 SIDE VIEW (main like bottle side) ---
-    cx, cy = 500, 200
-    stem_h = 150
-    arm_len = 120
-    rad = math.radians(angle/2)
-    x1 = cx - arm_len*math.sin(rad); y1 = cy+stem_h + arm_len*math.cos(rad)
-    x2 = cx + arm_len*math.sin(rad); y2 = cy+stem_h + arm_len*math.cos(rad)
+    # Label "Plan"
+    ax.add_patch(plt.Rectangle((8,57),5,2, fill=False, ec='white', lw=0.8))
+    ax.text(10.5,58,"Plan", color='white', fontsize=5, ha='center', va='center')
 
-    # Draw Y
-    ax.plot([cx,cx],[cy,cy+stem_h], c='white', lw=dia*0.8)
-    ax.plot([cx,x1],[cy+stem_h,y1], c='white', lw=dia*0.8)
-    ax.plot([cx,x2],[cy+stem_h,y2], c='white', lw=dia*0.8)
-    ax.plot([cx-40,cx+40],[cy,cy+6], c='white', lw=4) # foot
+    # --- DRAWINGS - 3 VIEWS like your reference ---
+    # 1. Top view (left circle) - foot Ø
+    circle = plt.Circle((20,35), 9, fill=False, ec='white', lw=1.2)
+    ax.add_patch(circle)
+    ax.plot([20,20],[26,44], c='white', lw=0.4, ls='--')
+    ax.plot([11,29],[35,35], c='white', lw=0.4, ls='--')
+    ax.text(20,22,f"FOOT Ø50 - 8x Ø6 HOLES\nMATERIAL: ROUND WIRE DIA {dia}mm", color='white', fontsize=4.5, ha='center')
 
-    # Dimensions
-    ax.annotate("", xy=(cx+120, cy), xytext=(cx+120, cy+stem_h+arm_len), arrowprops=dict(arrowstyle='<->', color='white'))
-    ax.text(cx+130, cy+80, f"{a}mm\nOVERALL HEIGHT", color='white', fontsize=8)
+    # 2. Isometric Y (right top) - white thick
+    cx, cy = 70, 40
+    stem = 10
+    arm = 12
+    r = math.radians(ang/2)
+    x1, y1 = cx - arm*math.sin(r), cy+stem + arm*math.cos(r)
+    x2, y2 = cx + arm*math.sin(r), cy+stem + arm*math.cos(r)
+    ax.plot([cx,cx],[cy,cy+stem], c='white', lw=2.5)
+    ax.plot([cx,x1],[cy+stem,y1], c='white', lw=2.5)
+    ax.plot([cx,x2],[cy+stem,y2], c='white', lw=2.5)
+    # dims
+    ax.annotate("", xy=(x1-1,y1), xytext=(x2+1,y2), arrowprops=dict(arrowstyle='<->', color='white', lw=0.6))
+    ax.text(70,56,f"Ø50mm", color='white', fontsize=5, weight='bold', ha='center')
+    ax.text(76,45,f"{arm}mm", color='white', fontsize=4, rotation=35)
 
-    ax.annotate("", xy=(cx-40, cy-10), xytext=(cx+40, cy-10), arrowprops=dict(arrowstyle='<->', color='white'))
-    ax.text(cx, cy-30, "Ø50mm", color='white', ha='center', fontsize=9, weight='bold')
+    # 3. Side view (bottom center)
+    sx, sy = 50, 12
+    sx1, sy1 = sx - 8, sy+12
+    sx2, sy2 = sx + 8, sy+12
+    ax.plot([sx,sx],[sy+2,sy+8], c='white', lw=2.5)
+    ax.plot([sx,sx1],[sy+8,sy1], c='white', lw=2.5)
+    ax.plot([sx,sx2],[sy+8,sy2], c='white', lw=2.5)
+    ax.plot([sx-6,sx+6],[sy,sy], c='white', lw=2)
 
-    # Angle
-    ax.text(cx, y1-30, f"{angle}°", color='white', ha='center', fontsize=10)
-    
-    # Callouts 1,2,3,4 like MO2E
-    ax.text(130, 420, "Logo", color='white', fontsize=7); ax.plot([130,200],[418,418], c='white', lw=0.5); ax.text(210,416,"1",color='white', weight='bold')
-    ax.text(130, 300, 'Letter "O"', color='white', fontsize=7); ax.plot([130,200],[298,298], c='white', lw=0.5); ax.text(210,296,"2",color='white', weight='bold')
-    ax.text(350, 400, "Bottle holder", color='white', fontsize=7); ax.text(410,390,"3",color='white', weight='bold')
-    ax.text(550, 550, "Bottle", color='white', fontsize=7); ax.text(620,540,"4",color='white', weight='bold')
+    ax.annotate("", xy=(sx+10, sy), xytext=(sx+10, sy1), arrowprops=dict(arrowstyle='<->', color='white', lw=0.6))
+    ax.text(sx+11, sy+6, f"{a}mm\nOVERALL HEIGHT", color='white', fontsize=4)
+    ax.text(sx, sy1+1, f"{ang}°", color='white', fontsize=5, ha='center')
 
-    # Title block
-    ax.text(750, 150, "TITLE: Y-TYPE REFRACTORY ANCHOR\nPART NO: YRA-100-75\nDRAWING NO: HEL-YRA-100-75  SCALE:1:1\nDRAWN: 2024-09-11 | ENG  SHEET:1 OF 1\nMATERIAL: REFRACTORY STEEL WIRE Ø10mm\nHELCON.COM | TECHNICAL DOC", 
-            color='black', fontsize=6, bbox=dict(facecolor='white', edgecolor='black', pad=5))
+    # Notes like MO2E description
+    ax.text(8, 8, f"NOTES:\n- MATERIAL: REFRACTORY STEEL Ø{dia}mm\n- Y-ANGLE: {ang}° INCLUDED\n- R9 BEND RADIUS AT Y-JUNCTION\n- OVERALL HEIGHT: {a}mm ±1.0mm\n- FOOT: Ø50mm\n- FINISH: RAW STEEL", color='white', fontsize=4.2, va='bottom',
+            bbox=dict(facecolor='none', edgecolor='white', lw=0.5, pad=2))
+
+    # Bottom footer like reference
+    ax.text(50, 0.2, "HELCON.COM — Y-TYPE REFRACTORY ANCHOR — REV A — DATE: 11-09-2026 — ALL DIMENSIONS IN MM UNLESS NOTED", color='white', fontsize=3.5, ha='center')
 
     return fig
 
-if True: # always show
-    fig = draw_blueprint(a, dia, angle)
-    st.pyplot(fig, use_container_width=True)
-    buf = io.BytesIO()
-    fig.savefig(buf, format='pdf', facecolor='#0F6FFF')
-    st.download_button("⬇️ DOWNLOAD BLUEPRINT PDF", buf.getvalue(), file_name="HELCON_BLUEPRINT.pdf", mime="application/pdf")
-    plt.close(fig)
+fig = blueprint_fig(a, dia, ang)
+st.pyplot(fig, use_container_width=True)
+
+buf = io.BytesIO()
+fig.savefig(buf, format='pdf', facecolor='#0B65E8')
+st.download_button("⬇️ DOWNLOAD BLUEPRINT PDF", buf.getvalue(), file_name=f"HELCON_BLUEPRINT_{a}x{dia}.pdf", mime="application/pdf")
