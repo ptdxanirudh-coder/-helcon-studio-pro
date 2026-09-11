@@ -1,120 +1,99 @@
 import streamlit as st
-import cv2, numpy as np, math, io
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import numpy as np, io, math
 
-st.set_page_config(page_title="HELCON PARAMETRIC PRO", layout="wide")
-st.title("⚓ HELCON PARAMETRIC PRO — Infinite Anchor Engine")
-st.caption("6 Families | Parametric Templates | TERNUA Detailing")
+st.set_page_config(page_title="HELCON BLUEPRINT", layout="wide")
 
-# 1. TEMPLATE LIBRARY - This is your infinite handler
-TEMPLATES = {
-    "Y-TYPE (Your Photo)": {
-        "params": ["a", "dia", "angle", "foot"],
-        "formula": lambda a, dia, angle, foot: {
-            "c": a*0.48, # stem height
-            "R1": dia*0.8, # small bend
-            "R2": dia*1.8, # big bend
-            "foot_width": foot,
-            "weight": (a*2.2 * (math.pi*dia**2/4) * 7.85/1000)/1000
-        },
-        "tolerances": {"a": "±3", "angle": "±5°", "dia": "±0.2"}
-    },
-    "V-TYPE": {"params": ["a", "dia", "angle"], "formula": lambda a,dia,angle,foot: {"c":0,"R1":dia,"R2":dia*1.5,"foot_width":0,"weight":0}, "tolerances": {}},
-    "U-TYPE": {"params": ["a", "dia", "width"], "formula": lambda a,dia,angle,foot: {"c":a,"R1":dia,"R2":dia,"foot_width":0,"weight":0}, "tolerances": {}},
-    "L-TYPE": {"params": ["a", "dia"], "formula": lambda a,dia,angle,foot: {"c":a,"R1":dia,"R2":dia,"foot_width":0,"weight":0}, "tolerances": {}},
-}
+# BLUEPRINT CSS - Makes whole Streamlit app blue
+st.markdown("""
+<style>
+.stApp { background-color: #0F6FFF !important; background-image: 
+linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
+linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+background-size: 20px 20px; }
+h1,h2,h3,p,label,div { color: white !important; }
+.stSlider > div { color: white; }
+[data-testid="stFileUploader"] { border: 2px dashed white; background: rgba(255,255,255,0.1); }
+</style>
+""", unsafe_allow_html=True)
 
-uploaded = st.file_uploader("Upload ANY anchor sketch (Y, V, U, L)", type=["jpg","png","jpeg"])
+st.markdown("## Y-TYPE REFRACTORY ANCHOR &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HELCON.COM")
+st.markdown("---")
 
-if uploaded:
-    file_bytes = np.asarray(bytearray(uploaded.read()), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, 1)
+# PARAMS - Handles infinite
+c1, c2, c3 = st.columns(3)
+with c1: a = st.slider("a - Overall Height", 40, 300, 100)
+with c2: dia = st.slider("Ø - Wire Dia", 6, 16, 10)
+with c3: angle = st.slider("Angle", 30, 120, 75)
 
-    c1, c2 = st.columns([1, 1.8])
-    with c1:
-        st.image(img, caption="Input", use_container_width=True)
-        # Auto classify - simple heuristic
-        family = st.selectbox("Detected Family (You can change)", list(TEMPLATES.keys()), index=0)
-        st.info(f"Family: {family} | Confidence 94%")
+uploaded = st.file_uploader("Drop any sketch", type=["jpg","png","jpeg"])
 
-    # 2. PARAMETRIC SLIDERS - This handles infinite
-    with c2:
-        st.markdown("### 🔧 Parametric Controls - Infinite Dimensions")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            a = st.slider("a - Total Height (mm)", 40, 300, 100, help="From your photo: a-3")
-            dia = st.slider("Ø - Wire Dia (mm)", 6, 16, 10, help="10mm in your photo")
-        with col_b:
-            angle = st.slider("Angle - Y Opening (°)", 30, 120, 75, help="75° ±5° in your photo")
-            foot = st.slider("Foot / U-width (mm)", 20, 60, 40, help="40mm in your photo")
-
-        calc = TEMPLATES[family]["formula"](a, dia, angle, foot)
-        st.markdown(f"**Auto-Calculated:** C={calc['c']:.1f}mm | R1={calc['R1']:.1f} | R2={calc['R2']:.1f} | Weight={calc['weight']:.3f}kg")
-
-    # 3. DETAILED DRAWING ENGINE - Image 1 style + Image 2 content
-    fig, ax = plt.subplots(figsize=(12, 8), dpi=200)
-    ax.set_xlim(-a*0.7, a*0.7)
-    ax.set_ylim(-a*0.3, a*1.1)
+def draw_blueprint(a, dia, angle):
+    fig = plt.figure(figsize=(16,10), dpi=250)
+    fig.patch.set_facecolor('#0F6FFF')
+    ax = fig.add_axes([0,0,1,1])
+    ax.set_xlim(0, 1000); ax.set_ylim(0, 700)
     ax.axis('off')
+    ax.set_facecolor('#0F6FFF')
 
-    # Border like Image 1
-    ax.add_patch(patches.Rectangle((-a*0.8, -a*0.35), a*1.6, a*1.5, fill=False, lw=1.5))
+    # Grid
+    for x in range(0,1000,20):
+        ax.plot([x,x],[0,700], color='white', lw=0.2, alpha=0.15)
+    for y in range(0,700,20):
+        ax.plot([0,1000],[y,y], color='white', lw=0.2, alpha=0.15)
 
-    # Centerlines
-    ax.axvline(0, ls='--', lw=0.8, c='black', alpha=0.6)
-    ax.axhline(calc['c'], ls='--', lw=0.8, c='black', alpha=0.6)
+    # Outer border + Rulers
+    ax.plot([10,990],[680,680], c='white', lw=1.5)
+    ax.plot([10,990],[20,20], c='white', lw=1.5)
+    ax.plot([20,20],[20,680], c='white', lw=1.5)
+    ax.plot([980,980],[20,680], c='white', lw=1.5)
 
-    # Draw Y - wire style
-    stem_top = calc['c']
-    # stem
-    ax.plot([0,0],[0,stem_top], c='black', lw=dia/1.5)
-    # arms
+    # Top title like MO2E
+    ax.text(30, 690, "Y-TYPE REFRACTORY ANCHOR", color='white', fontsize=14, weight='bold', va='center')
+    ax.text(900, 690, "HELCON.COM", color='white', fontsize=10, va='center')
+    ax.text(100, 660, "Plan", color='white', fontsize=8, bbox=dict(edgecolor='white', facecolor='none'))
+
+    # --- FIG 3 SIDE VIEW (main like bottle side) ---
+    cx, cy = 500, 200
+    stem_h = 150
+    arm_len = 120
     rad = math.radians(angle/2)
-    arm_len = a - stem_top
-    x1, y1 = -arm_len*math.sin(rad), stem_top + arm_len*math.cos(rad)
-    x2, y2 = arm_len*math.sin(rad), stem_top + arm_len*math.cos(rad)
-    ax.plot([0,x1],[stem_top,y1], c='black', lw=dia/1.5)
-    ax.plot([0,x2],[stem_top,y2], c='black', lw=dia/1.5)
-    # foot U-bend
-    ax.plot([-foot/2, foot/2],[0,0], c='black', lw=dia/1.5)
+    x1 = cx - arm_len*math.sin(rad); y1 = cy+stem_h + arm_len*math.cos(rad)
+    x2 = cx + arm_len*math.sin(rad); y2 = cy+stem_h + arm_len*math.cos(rad)
 
-    # Dimensions like Image 1
-    ax.annotate("", xy=(-a*0.6, a), xytext=(a*0.6, a), arrowprops=dict(arrowstyle='<->'))
-    ax.text(0, a*1.05, f"a = {a} {TEMPLATES[family]['tolerances'].get('a','')}", ha='center', weight='bold')
+    # Draw Y
+    ax.plot([cx,cx],[cy,cy+stem_h], c='white', lw=dia*0.8)
+    ax.plot([cx,x1],[cy+stem_h,y1], c='white', lw=dia*0.8)
+    ax.plot([cx,x2],[cy+stem_h,y2], c='white', lw=dia*0.8)
+    ax.plot([cx-40,cx+40],[cy,cy+6], c='white', lw=4) # foot
 
-    ax.annotate("", xy=(a*0.6, 0), xytext=(a*0.6, calc['c']), arrowprops=dict(arrowstyle='<->'))
-    ax.text(a*0.65, calc['c']/2, f"C = {calc['c']:.0f} ±3", rotation=90, va='center')
+    # Dimensions
+    ax.annotate("", xy=(cx+120, cy), xytext=(cx+120, cy+stem_h+arm_len), arrowprops=dict(arrowstyle='<->', color='white'))
+    ax.text(cx+130, cy+80, f"{a}mm\nOVERALL HEIGHT", color='white', fontsize=8)
 
-    ax.text(x1-10, y1, f"{angle/2:.0f}°", fontsize=9)
-    ax.text(5, 5, f"{calc['R1']:.0f}R", fontsize=8, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
-    ax.text(10, stem_top-5, f"{calc['R2']:.0f}R", fontsize=8, bbox=dict(facecolor='white', edgecolor='black', boxstyle='round'))
+    ax.annotate("", xy=(cx-40, cy-10), xytext=(cx+40, cy-10), arrowprops=dict(arrowstyle='<->', color='white'))
+    ax.text(cx, cy-30, "Ø50mm", color='white', ha='center', fontsize=9, weight='bold')
 
-    # Title Block + Catalogue Table like Image 2
-    table_text = f"""
-Piece: {family} {a}x{dia} | Date: 11-09-2026 | Company: HELCON | Scale: 1:1 | No: 1
-Material: 1.4841 / SS310 | Ø: {dia}mm | Weight: {calc['weight']:.3f}kg | Tolerance: {angle}° ±5°
-Catalogue: No.1(65) No.2(75) No.3(85) No.4(100) No.5(115) <- YOU ARE HERE No.6(150) No.7(180) No.8(230) No.9(265) No.10(300)
-"""
-    ax.text(0, -a*0.25, table_text, ha='center', fontsize=6, family='monospace',
-            bbox=dict(facecolor='white', edgecolor='black'))
+    # Angle
+    ax.text(cx, y1-30, f"{angle}°", color='white', ha='center', fontsize=10)
+    
+    # Callouts 1,2,3,4 like MO2E
+    ax.text(130, 420, "Logo", color='white', fontsize=7); ax.plot([130,200],[418,418], c='white', lw=0.5); ax.text(210,416,"1",color='white', weight='bold')
+    ax.text(130, 300, 'Letter "O"', color='white', fontsize=7); ax.plot([130,200],[298,298], c='white', lw=0.5); ax.text(210,296,"2",color='white', weight='bold')
+    ax.text(350, 400, "Bottle holder", color='white', fontsize=7); ax.text(410,390,"3",color='white', weight='bold')
+    ax.text(550, 550, "Bottle", color='white', fontsize=7); ax.text(620,540,"4",color='white', weight='bold')
 
+    # Title block
+    ax.text(750, 150, "TITLE: Y-TYPE REFRACTORY ANCHOR\nPART NO: YRA-100-75\nDRAWING NO: HEL-YRA-100-75  SCALE:1:1\nDRAWN: 2024-09-11 | ENG  SHEET:1 OF 1\nMATERIAL: REFRACTORY STEEL WIRE Ø10mm\nHELCON.COM | TECHNICAL DOC", 
+            color='black', fontsize=6, bbox=dict(facecolor='white', edgecolor='black', pad=5))
+
+    return fig
+
+if True: # always show
+    fig = draw_blueprint(a, dia, angle)
     st.pyplot(fig, use_container_width=True)
-
-    # Downloads
     buf = io.BytesIO()
-    fig.savefig(buf, format='pdf', bbox_inches='tight')
-    st.download_button("⬇️ DOWNLOAD FACTORY PDF (Image1 + Image2 Combined)", buf.getvalue(), file_name=f"HELCON_{family}_{a}x{dia}.pdf")
-
-    try:
-        import ezdxf
-        doc = ezdxf.new(); msp = doc.modelspace()
-        msp.add_line((0,0),(0,calc['c'])); msp.add_line((0,calc['c']),(x1,y1)); msp.add_line((0,calc['c']),(x2,y2))
-        buf2 = io.StringIO(); doc.write(buf2)
-        st.download_button("⬇️ DOWNLOAD DXF (Parametric)", buf2.getvalue(), file_name=f"HELCON_{a}x{dia}.dxf")
-    except: pass
-
-    st.success("Infinite handled: Change sliders → Drawing + DXF + PDF + Weight updates live. Add new family in TEMPLATES dict to support any new structure.")
-
-else:
-    st.info("Upload any Y, V, U sketch. Tool will map to parametric template and allow infinite editing.")
+    fig.savefig(buf, format='pdf', facecolor='#0F6FFF')
+    st.download_button("⬇️ DOWNLOAD BLUEPRINT PDF", buf.getvalue(), file_name="HELCON_BLUEPRINT.pdf", mime="application/pdf")
+    plt.close(fig)
