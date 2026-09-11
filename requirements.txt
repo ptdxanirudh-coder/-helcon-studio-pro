@@ -1,10 +1,7 @@
 streamlit
 opencv-python-headless
 numpy
-ezdxf
-reportlab
-trimesh
 Pillow
+ezdxf
+matplotlib
 easyocr
-torch
-torchvision
